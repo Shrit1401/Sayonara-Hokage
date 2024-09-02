@@ -1,6 +1,7 @@
 from multiprocessing import Process, Queue
 import cv2
 import numpy as np
+import base64
 import pygame
 
 def startbgmusic(track):
@@ -62,17 +63,75 @@ def webcam_capture():
 
     cap.release()
     cv2.destroyAllWindows()
+    
+def resize_image(image, max_width = 500):
+    # make sure the aspect ratio is maintained
+    h, w = image.shape[:2]
+    
+    ratio = max_width / float(w)
+    new_height = int(h * ratio)
+    
+    # this will resize the image to have a height of 500px
+    resized_image = cv2.resize(
+        image, (max_width, new_height), interpolation=cv2.INTER_AREA
+    )
+    return resized_image
+
+def pass_to_gpt(image, script):
+    # pass the image and script to GPT-3
+    return "GPT-4 output"
+    
+    
+def process_frames(queue):
+    cap = cv2.VideoCapture(0)
+    
+    if not cap.isOpened():
+        print("Error: Webcam not accessible in process_frames.")
+        return
+
+    frames_count = 0
+    script = []
+    
+    while True:
+        ret, frame = cap.read() 
+        frame = cv2.flip(frame, 1)
+        if not ret:
+            break
+        print("----capturing----")
+        
+        filename = "frame.jpg"
+        
+        cv2.imwrite(filename, frame)
+        
+        resized_frame = resize_image(frame)
+        retval, buffer = cv2.imencode(".jpg", resized_frame)
+        # convert to lot of text which represents the image
+        base64_image = base64.b64encode(buffer).decode("utf-8")
+        openai_output = pass_to_gpt(base64_image, script)
+        script = script + [{"role": "assistant", "content": openai_output}]
+        
+        frames_count += 1
+        print("script:", script)
+        # put the output in the queue for the main process
+        queue.put(openai_output)
+        #TODO: now play audio here, the script will be our openai_outut
+    
+    cap.release()
 
 
 def main():
     queue = Queue()
     webcam_process = Process(target=webcam_capture, args=())
     music_proc = Process(target=music_process)
+    frames_process = Process(target=process_frames, args=(queue,))
+
 
     webcam_process.start()
+    frames_process.start()
     music_proc.start()
 
     webcam_process.join()
+    frames_process.join()
     music_proc.join()
 
 if __name__ == "__main__":
