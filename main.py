@@ -16,6 +16,9 @@ def startbgmusic(track):
     pygame.mixer.music.play(-1)
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
+        
+def play_audio(text):
+    print("WRITE THE TEXT TO AUDIO CODE HERE")
 
 def music_process():
     startbgmusic("bg.mp3")
@@ -138,13 +141,13 @@ def process_frames(queue):
         resized_frame = resize_image(frame)
         retval, buffer = cv2.imencode(".jpg", resized_frame)
         base64_image = base64.b64encode(buffer).decode("utf-8")
-        openai_output = pass_to_gpt(base64_image, script, name=your_name)
-        if openai_output:
-            script.append({"role": "assistant", "content": openai_output})
-            queue.put(openai_output)
-        
-        frames_count += 1
+        gpt_4_output = pass_to_gpt(base64_image, script)
+        script = script + [{"role": "assistant", "content": gpt_4_output}]
         print("script:", script)
+
+        frame_count += 1
+        queue.put(gpt_4_output)
+        play_audio(gpt_4_output)
         time.sleep(5)
     
     cap.release()
