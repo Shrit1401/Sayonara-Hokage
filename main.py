@@ -6,10 +6,15 @@ import pygame
 import time
 import requests
 import os
+from elevenlabs.client import ElevenLabs
+from elevenlabs import VoiceSettings
 
+client = ElevenLabs(
+  api_key=os.getenv("ELEVENLABS_API_KEY") # Defaults to ELEVEN_API_KEY
+)
 OPENAPI_KEY = os.getenv("OPENAI_API_KEY")
 your_name = "shrit"
-
+audio_file_cnt = 0
 def startbgmusic(track):
     pygame.mixer.init()
     pygame.mixer.music.load(track)
@@ -18,8 +23,40 @@ def startbgmusic(track):
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
         
-def play_audio(text):
+def play_audio(text_input):
     print("WRITE THE TEXT TO AUDIO CODE HERE")
+    global audio_file_cnt
+    try:
+        audio_stream = client.text_to_speech.convert(
+            voice_id="pMsXgVXv3BLzUgSXRplE",
+            optimize_streaming_latency="0",
+            output_format="mp3_22050_32",
+            text=text_input,
+            voice_settings=VoiceSettings(
+                stability=0.1,
+                similarity_boost=0.3,
+                style=0.2,
+            ),
+        )
+        # Save the output to a file
+        output_file = "output_audio"+str(audio_file_cnt)+".mp3"
+        audio_file_cnt += 1
+        with open(output_file, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
+        
+        pygame.mixer.init()
+        pygame.mixer.music.load(output_file)
+        pygame.mixer.music.play()
+
+        while pygame.mixer.music.get_busy():
+            pygame.time.Clock().tick(10)  # Wait until the music finishes playing
+        # Optionally, play the audio directly
+        # os.system(f"mpg123 {output_file}")  # Using mpg123 to play mp3 files; make sure mpg123 is installed
+
+    except Exception as e:
+        print(f"Error during text-to-speech conversion: {e}")
+
 
 def music_process():
     startbgmusic("bg.mp3")
@@ -130,26 +167,30 @@ def process_frames(queue):
     frames_count = 0
     script = []
 
-    while True:
-        ret, frame = cap.read()
-        frame = cv2.flip(frame, 1)
-        if not ret:
-            break
-        print("----capturing----")
-        filename = "frame.jpg"
-        cv2.imwrite(filename, frame)
-        
-        resized_frame = resize_image(frame)
-        retval, buffer = cv2.imencode(".jpg", resized_frame)
-        base64_image = base64.b64encode(buffer).decode("utf-8")
-        gpt_4_output = pass_to_gpt(base64_image, script)
-        script = script + [{"role": "assistant", "content": gpt_4_output}]
-        print("script:", script)
+    try:
 
-        frames_count += 1
-        queue.put(gpt_4_output)
-        play_audio(gpt_4_output)
-        time.sleep(5)
+        while True:
+            ret, frame = cap.read()
+            frame = cv2.flip(frame, 1)
+            if not ret:
+                break
+            print("----capturing----")
+            filename = "frame.jpg"
+            cv2.imwrite(filename, frame)
+            
+            resized_frame = resize_image(frame)
+            retval, buffer = cv2.imencode(".jpg", resized_frame)
+            base64_image = base64.b64encode(buffer).decode("utf-8")
+            gpt_4_output = pass_to_gpt(base64_image, script)
+            script = script + [{"role": "assistant", "content": gpt_4_output}]
+            print("script:", script)
+
+            frames_count += 1
+            queue.put(gpt_4_output)
+            play_audio(gpt_4_output)
+            time.sleep(5)
+    except Exception as e:
+        print(f"Error during capturing image: {e}")
     
     cap.release()
 
