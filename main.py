@@ -5,8 +5,9 @@ import base64
 import pygame
 import time
 import requests
+import os
 
-OPENAPI_KEY = "open_ai_key"
+OPENAPI_KEY = os.getenv("OPENAI_API_KEY")
 your_name = "shrit"
 
 def startbgmusic(track):
@@ -145,7 +146,7 @@ def process_frames(queue):
         script = script + [{"role": "assistant", "content": gpt_4_output}]
         print("script:", script)
 
-        frame_count += 1
+        frames_count += 1
         queue.put(gpt_4_output)
         play_audio(gpt_4_output)
         time.sleep(5)
