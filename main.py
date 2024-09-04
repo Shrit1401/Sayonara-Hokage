@@ -10,9 +10,9 @@ from elevenlabs.client import ElevenLabs
 from elevenlabs import VoiceSettings
 
 client = ElevenLabs(
-  api_key=os.getenv("ELEVENLABS_API_KEY") # Defaults to ELEVEN_API_KEY
+  api_key= os.environ.get("ELEVENLABS_API_KEY"),
 )
-OPENAPI_KEY = os.getenv("OPENAI_API_KEY")
+OPENAPI_KEY = os.environ.get("OPENAPI_KEY")
 your_name = "shrit"
 audio_file_cnt = 0
 def startbgmusic(track):
@@ -24,11 +24,10 @@ def startbgmusic(track):
         pygame.time.Clock().tick(10)
         
 def play_audio(text_input):
-    print("WRITE THE TEXT TO AUDIO CODE HERE")
     global audio_file_cnt
     try:
         audio_stream = client.text_to_speech.convert(
-            voice_id="pMsXgVXv3BLzUgSXRplE",
+            voice_id="nPczCjzI2devNBz1zQrb",
             optimize_streaming_latency="0",
             output_format="mp3_22050_32",
             text=text_input,
@@ -39,7 +38,7 @@ def play_audio(text_input):
             ),
         )
         # Save the output to a file
-        output_file = "output_audio"+str(audio_file_cnt)+".mp3"
+        output_file = "./audio/output_audio"+str(audio_file_cnt)+".mp3"
         audio_file_cnt += 1
         with open(output_file, "wb") as f:
             for chunk in audio_stream:
@@ -132,11 +131,11 @@ def pass_to_gpt(base64_image, script, name=None):
             {
                 "role": "system",
                 "content": """
-You are the narrator of a hero film. The name of each character is below their face. If not, don't name them. Narrate the characters as if you were narrating the main characters in an epic opening sequence. Be sure to call them by their names.
+You are the narrator of a simple but inspiring story.. The name of each character is below their face. If not, don't name Shrit. Narrate the characters as if you were narrating the main characters in an epic opening sequence. Be sure to call them by their names.
 Make it really awesome, while really making the characters feel epic. Don't repeat yourself. Make it short, max one line 10-20 words. Build on top of the story as you tell it. Don't use the word image. 
-As you narrate, pretend there is an epic Hans Zimmer song playing in the background.
+As you narrate, pretend there is an epic Hans Zimmer song playing in the background. Focus on making the characters feel grounded and human
 Use words that are simple but poetic, a 4th grader should be able to understand it perfectly.
-Build a back story for each of the characters as the heroes of a world they're trying to save.
+Build a back story for each of the characters as the heroes of a world they're trying to save. also give them motivation for their journey.
                 """.strip(),
             },
         ]
