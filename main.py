@@ -25,7 +25,34 @@ def startbgmusic(track):
     pygame.mixer.music.play(-1)
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
-        
+
+def play_countdown_video(video_path):
+    """Plays the countdown video frame by frame."""
+    cap_video = cv2.VideoCapture(video_path)
+    
+    if not cap_video.isOpened():
+        print(f"Error opening video file: {video_path}")
+        return False
+
+    # Loop through video frames
+    while cap_video.isOpened():
+        ret, frame = cap_video.read()
+        if not ret:
+            break
+
+        # Display the video frame
+        cv2.imshow("Countdown Video", frame)
+
+        # Wait between frames
+        if cv2.waitKey(30) & 0xFF == ord('q'):  # Press 'q' to exit prematurely
+            cap_video.release()
+            return False
+
+    # Release the video once finished
+    cap_video.release()
+    cv2.destroyWindow("Countdown Video")
+    return True
+
 def play_audio(text_input):
     global audio_file_cnt
     try:
@@ -59,6 +86,7 @@ def play_audio(text_input):
     except Exception as e:
         print(f"Error during text-to-speech conversion: {e}")
 
+    return True
 
 def music_process():
     startbgmusic("bg.mp3")
@@ -101,6 +129,7 @@ def generate_new_line(base64_image, name=None):
 
 
 def pass_to_gpt(base64_image, script, name=None):
+    return "Hey there you! Yes you, the hero of the world and the unsung warrior"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {OPENAPI_KEY}"}
     payload = {
         "model": "gpt-4o-mini",
@@ -150,6 +179,10 @@ def process_frames(queue):
 
         while True:
 
+            # Play the countdown video before capturing the image
+            if play_countdown_video("Countdown.mp4"):  # Specify your countdown video path here
+                print("Countdown video finished. Capturing image...")
+            
             print("process_frames_while_statement_is_run")
             ret, frame = cap.read()
             frame = cv2.flip(frame, 1)
@@ -176,11 +209,11 @@ def process_frames(queue):
             frame = enhance_image_contrast_saturation(frame)
             frame = add_subtitle(frame, gpt_4_output)
             cv2.imshow("Sayonara Hokage", frame)
-            play_audio(gpt_4_output)
+            # play_audio(gpt_4_output)
             
+            time.sleep(5)
             cv2.waitKey(5000)
             cv2.destroyAllWindows()
-            time.sleep(5)
     except Exception as e:
         print(f"Error during capturing image: {e}")
     print("Exited process_frames")
