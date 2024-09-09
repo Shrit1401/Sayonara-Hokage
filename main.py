@@ -5,14 +5,13 @@ import base64
 import pygame
 import time
 import requests
-import os
 from elevenlabs.client import ElevenLabs
 from elevenlabs import VoiceSettings
 
 client = ElevenLabs(
-  api_key= os.environ.get("ELEVENLABS_API_KEY"),
+  api_key= ""
 )
-OPENAPI_KEY = os.environ.get("OPENAPI_KEY")
+OPENAPI_KEY = ""
 your_name = "shrit"
 audio_file_cnt = 0
 def startbgmusic(track):
@@ -105,7 +104,8 @@ def resize_image(image, max_width=500):
     resized_image = cv2.resize(image, (max_width, new_height), interpolation=cv2.INTER_AREA)
     return resized_image
 
-def generate_new_line(base64_image, name=None):
+def generate_new_line(base64_image):
+    name = "Shrit"
     if name:
         content = [
             {"type": "text", "text": f"Describe this scene like you're a narrator in a movie. The character's name is {name}."},
@@ -123,7 +123,7 @@ def generate_new_line(base64_image, name=None):
     }
 
 
-def pass_to_gpt(base64_image, script, name=None):
+def pass_to_gpt(base64_image, script):
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {OPENAPI_KEY}"}
     payload = {
         "model": "gpt-4o-mini",
@@ -131,16 +131,12 @@ def pass_to_gpt(base64_image, script, name=None):
             {
                 "role": "system",
                 "content": """
-You are the narrator of a simple but inspiring story.. The name of each character is below their face. If not, don't name Shrit. Narrate the characters as if you were narrating the main characters in an epic opening sequence. Be sure to call them by their names.
-Make it really awesome, while really making the characters feel epic. Don't repeat yourself. Make it short, max one line 10-20 words. Build on top of the story as you tell it. Don't use the word image. 
-As you narrate, pretend there is an epic Hans Zimmer song playing in the background. Focus on making the characters feel grounded and human
-Use words that are simple but poetic, a 4th grader should be able to understand it perfectly.
-Build a back story for each of the characters as the heroes of a world they're trying to save. also give them motivation for their journey.
+Narrate a simple but inspiring story with an epic opening sequence. Below each character's face, their name will be displayed—if no name is shown, don't name that character "Shrit." Introduce each character like they're the heroes of a world they're trying to save, and give them motivation for their journey. Keep it short, no more than one line of 10-20 words per character. Make it feel grounded, human, and poetic with an epic Hans Zimmer-style soundtrack in the background. Focus on simplicity, using words a 4th grader can understand perfectly. make sure to end it
                 """.strip(),
             },
         ]
         + script
-        + [generate_new_line(base64_image, name)],
+        + [generate_new_line(base64_image)],
         "max_tokens": 300,
     }
 
