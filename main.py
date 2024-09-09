@@ -10,9 +10,9 @@ from elevenlabs.client import ElevenLabs
 from elevenlabs import VoiceSettings
 
 client = ElevenLabs(
-  api_key= os.environ.get("ELEVENLABS_API_KEY"),
+  api_key= ""
 )
-OPENAPI_KEY = os.environ.get("OPENAPI_KEY")
+OPENAPI_KEY = ""
 your_name = "shrit"
 audio_file_cnt = 0
 story_part = 4
@@ -129,7 +129,7 @@ def generate_new_line(base64_image, name=None):
 
 
 def pass_to_gpt(base64_image, script, name=None):
-    return "Hey there you! Yes you, the hero of the world and the unsung warrior"
+    # return "Hey there you! Yes you, the hero of the world and the unsung warrior"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {OPENAPI_KEY}"}
     payload = {
         "model": "gpt-4o-mini",
@@ -205,11 +205,11 @@ def process_frames(queue):
             #display the result in static frame
             #let this variable frames_count be here for now
             frames_count += 1
-            # queue.put(gpt_4_output)
+            queue.put(gpt_4_output)
             frame = enhance_image_contrast_saturation(frame)
             frame = add_subtitle(frame, gpt_4_output)
             cv2.imshow("Sayonara Hokage", frame)
-            # play_audio(gpt_4_output)
+            play_audio(gpt_4_output)    
             
             time.sleep(5)
             cv2.waitKey(5000)
