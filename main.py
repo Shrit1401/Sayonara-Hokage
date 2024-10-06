@@ -14,6 +14,9 @@ client = ElevenLabs(
 OPENAPI_KEY = ""
 your_name = "shrit"
 audio_file_cnt = 0
+story_part = 4
+cap = cv2.VideoCapture(0)
+
 def startbgmusic(track):
     pygame.mixer.init()
     pygame.mixer.music.load(track)
@@ -21,7 +24,34 @@ def startbgmusic(track):
     pygame.mixer.music.play(-1)
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
-        
+
+def play_countdown_video(video_path):
+    """Plays the countdown video frame by frame."""
+    cap_video = cv2.VideoCapture(video_path)
+    
+    if not cap_video.isOpened():
+        print(f"Error opening video file: {video_path}")
+        return False
+
+    # Loop through video frames
+    while cap_video.isOpened():
+        ret, frame = cap_video.read()
+        if not ret:
+            break
+
+        # Display the video frame
+        cv2.imshow("Countdown Video", frame)
+
+        # Wait between frames
+        if cv2.waitKey(30) & 0xFF == ord('q'):  # Press 'q' to exit prematurely
+            cap_video.release()
+            return False
+
+    # Release the video once finished
+    cap_video.release()
+    cv2.destroyWindow("Countdown Video")
+    return True
+
 def play_audio(text_input):
     global audio_file_cnt
     try:
@@ -55,6 +85,7 @@ def play_audio(text_input):
     except Exception as e:
         print(f"Error during text-to-speech conversion: {e}")
 
+    return True
 
 def music_process():
     startbgmusic("bg.mp3")
@@ -70,32 +101,6 @@ def enhance_image_contrast_saturation(image):
     enhanced_image = np.clip(enhanced_image, 0, 1)
     enhanced_image = (255 * enhanced_image).astype(np.uint8)
     return enhanced_image
-
-def webcam_capture(queue):
-    cap = cv2.VideoCapture(0)
-    subtitle_text = "---"
-
-    if not cap.isOpened():
-        print("Error: Webcam not accessible.")
-        return
-    
-    cv2.namedWindow("Sayonara Hokage", cv2.WINDOW_AUTOSIZE)
-    while True:
-        ret, frame = cap.read()
-        frame = cv2.flip(frame, 1)
-        if not ret:
-            break
-
-        frame = enhance_image_contrast_saturation(frame)
-        if not queue.empty():
-            subtitle_text = queue.get()
-        frame = add_subtitle(frame, subtitle_text)
-        cv2.imshow("Sayonara Hokage", frame)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
 
 def resize_image(image, max_width=500):
     h, w = image.shape[:2]
@@ -121,6 +126,7 @@ def generate_new_line(base64_image):
         "role": "user",
         "content": content
     }
+
 
 
 def pass_to_gpt(base64_image, script):
@@ -154,7 +160,10 @@ Narrate a simple but inspiring story with an epic opening sequence. Below each c
 
 
 def process_frames(queue):
-    cap = cv2.VideoCapture(0)
+
+    global cap
+    print("process_frames")
+    
     if not cap.isOpened():
         print("Error: Webcam not accessible in process_frames.")
         return
@@ -165,28 +174,45 @@ def process_frames(queue):
     try:
 
         while True:
+
+            # Play the countdown video before capturing the image
+            if play_countdown_video("Countdown.mp4"):  # Specify your countdown video path here
+                print("Countdown video finished. Capturing image...")
+            
+            print("process_frames_while_statement_is_run")
             ret, frame = cap.read()
             frame = cv2.flip(frame, 1)
+            
             if not ret:
                 break
+            
             print("----capturing----")
+            #save the captured image
             filename = "frame.jpg"
             cv2.imwrite(filename, frame)
-            
             resized_frame = resize_image(frame)
             retval, buffer = cv2.imencode(".jpg", resized_frame)
             base64_image = base64.b64encode(buffer).decode("utf-8")
+            #generate story on the image
             gpt_4_output = pass_to_gpt(base64_image, script)
             script = script + [{"role": "assistant", "content": gpt_4_output}]
             print("script:", script)
 
+            #display the result in static frame
+            #let this variable frames_count be here for now
             frames_count += 1
             queue.put(gpt_4_output)
-            play_audio(gpt_4_output)
+            frame = enhance_image_contrast_saturation(frame)
+            frame = add_subtitle(frame, gpt_4_output)
+            cv2.imshow("Sayonara Hokage", frame)
+            play_audio(gpt_4_output)    
+            
             time.sleep(5)
+            cv2.waitKey(5000)
+            cv2.destroyAllWindows()
     except Exception as e:
         print(f"Error during capturing image: {e}")
-    
+    print("Exited process_frames")
     cap.release()
 
 def add_subtitle(image, text="", max_line_length=40):
@@ -225,15 +251,12 @@ def add_subtitle(image, text="", max_line_length=40):
 
 def main():
     queue = Queue()
-    webcam_process = Process(target=webcam_capture, args=(queue,))
     music_proc = Process(target=music_process)
     frames_process = Process(target=process_frames, args=(queue,))
 
-    webcam_process.start()
     frames_process.start()
     music_proc.start()
 
-    webcam_process.join()
     frames_process.join()
     music_proc.join()
 
