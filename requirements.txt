@@ -1,0 +1,6 @@
+elevenlabs>=2.46.0
+opencv-python>=4.11.0
+numpy>=2.0.0
+pygame>=2.6.0
+requests>=2.32.0
+python-dotenv>=1.0.1

@@ -1,2 +1,7 @@
 .env
 frame.jpg
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+audio/*.mp3
